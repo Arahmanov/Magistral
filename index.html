@@ -869,6 +869,92 @@
 
   .dispatcher-bar { flex-shrink: 0; padding: 10px 14px; font-size: 13px !important; border-radius: 12px; }
 </style>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  /* ОНЛАЙН-МУЛЬТИПЛЕЕР (МЕЖГОРОДСКАЯ ДИСПЕТЧЕРСКАЯ СЕТЬ) */
+  .mode-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+  .mode-grid-3 .tier-btn { padding: 10px 8px !important; text-align: center; }
+  .mode-grid-3 .tier-btn strong { font-size: 13px !important; }
+  .mode-grid-3 .tier-btn span { font-size: 10px !important; line-height: 1.2; }
+  .tier-btn.mp-btn.selected {
+    border-color: var(--emerald);
+    background: rgba(16, 185, 129, 0.14);
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.18);
+  }
+
+  .mp-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+  .mp-input:focus { border-color: var(--cyan); }
+  .mp-code-input {
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 4px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .room-code-banner {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(6, 182, 212, 0.14));
+    border: 1.5px solid var(--emerald);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+  }
+  .room-code-val {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: #34d399;
+    margin: 4px 0;
+  }
+  .lobby-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  .lobby-player {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-left: 4px solid;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .net-badge {
+    font-size: 10px;
+    font-family: var(--font-display);
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+  }
+  .remote-banner {
+    background: rgba(6, 182, 212, 0.14);
+    border: 1px solid var(--cyan);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    color: #67e8f9;
+    font-weight: 600;
+  }
+</style>
 </head>
 <body>
 
@@ -919,14 +1005,18 @@
       </div>
 
       <div class="section-label">Режим смены</div>
-      <div class="tier-grid">
+      <div class="mode-grid-3">
         <button class="tier-btn selected" id="mode-solo" onclick="setGameMode('solo')">
-          <strong>КОНКУРЕНТНЫЙ</strong>
-          <span>Личная карьера и объекты</span>
+          <strong>ОФЛАЙН</strong>
+          <span>Друг против друга</span>
         </button>
         <button class="tier-btn" id="mode-corp" onclick="setGameMode('corp')">
-          <strong>КОРПОРАТИВНЫЙ</strong>
-          <span>Ликвидация аварий вместе</span>
+          <strong>БРИГАДА</strong>
+          <span>Корпоративный</span>
+        </button>
+        <button class="tier-btn mp-btn" id="mode-multi" onclick="setGameMode('multi')">
+          <strong>ОНЛАЙН</strong>
+          <span>Другие города</span>
         </button>
       </div>
 
@@ -952,7 +1042,47 @@
         </div>
       </div>
     </div>
-    <button class="cta-btn" onclick="startLottery()">ЖЕРЕБЬЁВКА ПЕРВОГО ХОДА</button>
+    <button class="cta-btn" id="setupMainBtn" onclick="handleSetupNext()">ЖЕРЕБЬЁВКА ПЕРВОГО ХОДА</button>
+  </main>
+
+  <!-- ЭКРАН 1Б: ОНЛАЙН-КОМНАТА (МУЛЬТИПЛЕЕР МЕЖДУ ГОРОДАМИ) -->
+  <main class="screen" id="scr-lobby">
+    <div class="panel">
+      <div class="section-label">Межгородская сеть ТЭК · Мультиплеер</div>
+
+      <div id="mpEntryForm">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+          <input type="text" id="mpPlayerName" class="mp-input" placeholder="Ваше имя (например: Артём)" maxlength="16">
+          <input type="text" id="mpPlayerCity" class="mp-input" placeholder="Ваш город (например: Пойковский / Сургут)" maxlength="20">
+        </div>
+
+        <button class="cta-btn emerald" style="margin-bottom:12px" onclick="createOnlineRoom()">СОЗДАТЬ КОМНАТУ (ХОСТ)</button>
+
+        <div class="section-label">Или войти по коду друга</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="text" id="mpJoinCodeInput" class="mp-input mp-code-input" placeholder="КОД" maxlength="4">
+          <button class="cta-btn cyan" style="min-height:52px;padding:12px" onclick="joinOnlineRoom()">ВОЙТИ</button>
+        </div>
+      </div>
+
+      <div id="mpRoomActive" class="hidden">
+        <div class="room-code-banner">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-family:var(--font-display)">Код диспетчерской комнаты</div>
+          <div class="room-code-val" id="mpRoomCodeText">----</div>
+          <div style="font-size:11px;color:#cbd5e1" id="mpNetStatusText">Ожидание подключения игроков из других городов...</div>
+        </div>
+
+        <div class="section-label" style="margin-top:10px">Участники на связи (<span id="mpLobbyCount">1</span>/6)</div>
+        <div class="lobby-list" id="mpLobbyList"></div>
+
+        <div style="display:flex;gap:8px;margin-top:6px" id="mpHostExtraControls">
+          <button class="tek-btn" style="flex:1;padding:10px" onclick="addRemoteTestBot()">+ Тест-игрок (г. Сургут)</button>
+        </div>
+      </div>
+
+      <button class="cta-btn" style="background:#1e293b;box-shadow:none;margin-top:10px;min-height:48px;padding:12px;font-size:14px" onclick="leaveOnlineLobby()">НАЗАД К НАСТРОЙКАМ</button>
+    </div>
+    <button class="cta-btn emerald hidden" id="mpStartMatchBtn" onclick="hostStartMultiplayerMatch()">НАЧАТЬ ОНЛАЙН-СМЕНУ</button>
   </main>
 
   <!-- ЭКРАН 2: ЖЕРЕБЬЁВКА -->
@@ -997,7 +1127,11 @@
         </div>
       </div>
 
-      <div class="action-stack">
+      <div id="remoteTurnNotice" class="remote-banner hidden">
+        Сейчас ходит участник из другого города...<br>
+        <span style="font-size:12px;color:var(--text-dim);font-weight:400">Следите за его броском и передвигайте его фишку на своём поле</span>
+      </div>
+      <div class="action-stack" id="localActionStack">
         <button class="cta-btn" id="rollBtn" onclick="rollMainDice()">БРОСИТЬ КУБИК</button>
         <button class="cta-btn cyan" id="openTaskBtn" onclick="executeCurrentCell()" disabled>ВЫПОЛНИТЬ ЗАДАНИЕ КЛЕТКИ</button>
       </div>
@@ -1180,7 +1314,7 @@ const WIN_SCORE_TARGET = 55;
 
 let state = {
   count: 4,
-  gameMode: 'solo', // 'solo' или 'corp'
+  gameMode: 'solo', // 'solo', 'corp' или 'multi'
   age: 'senior',
   players: [],
   currentIdx: 0,
@@ -1191,7 +1325,18 @@ let state = {
   isRolling: false,
   sectorOwners: {},
   corpFund: 0,
-  simState: { val: 2.0, minTarget: 4.5, maxTarget: 5.5, unit: 'МПа', track: 'automation' }
+  simState: { val: 2.0, minTarget: 4.5, maxTarget: 5.5, unit: 'МПа', track: 'automation' },
+  mp: {
+    active: false,
+    isHost: false,
+    roomCode: '',
+    myPeerId: '',
+    myPlayerIdx: 0,
+    peer: null,
+    conns: [],
+    hostConn: null,
+    lobbyPlayers: []
+  }
 };
 
 let audioCtx = null;
@@ -1274,6 +1419,339 @@ function setGameMode(mode) {
   state.gameMode = mode;
   document.getElementById('mode-solo').classList.toggle('selected', mode === 'solo');
   document.getElementById('mode-corp').classList.toggle('selected', mode === 'corp');
+  document.getElementById('mode-multi').classList.toggle('selected', mode === 'multi');
+  const btn = document.getElementById('setupMainBtn');
+  if (mode === 'multi') {
+    btn.innerText = 'ОТКРЫТЬ ОНЛАЙН-КОМНАТУ';
+    btn.classList.add('emerald');
+  } else {
+    btn.innerText = 'ЖЕРЕБЬЁВКА ПЕРВОГО ХОДА';
+    btn.classList.remove('emerald');
+  }
+}
+
+function handleSetupNext() {
+  if (state.gameMode === 'multi') {
+    openOnlineLobby();
+  } else {
+    state.mp.active = false;
+    startLottery();
+  }
+}
+
+function openOnlineLobby() {
+  playClick(650, 0.05);
+  document.getElementById('mpEntryForm').classList.remove('hidden');
+  document.getElementById('mpRoomActive').classList.add('hidden');
+  document.getElementById('mpStartMatchBtn').classList.add('hidden');
+  showScreen('scr-lobby');
+  speak('Режим мультиплеера. Создайте комнату или введите четырёхзначный код для подключения.');
+}
+
+function leaveOnlineLobby() {
+  if (state.mp.peer) {
+    try { state.mp.peer.destroy(); } catch (e) {}
+  }
+  state.mp.active = false;
+  state.mp.peer = null;
+  state.mp.conns = [];
+  state.mp.hostConn = null;
+  showScreen('scr-setup');
+}
+
+function generateRoomCode() {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function createOnlineRoom() {
+  const pName = (document.getElementById('mpPlayerName').value || 'Игрок 1').trim();
+  const pCity = (document.getElementById('mpPlayerCity').value || 'Пойковский').trim();
+  const code = generateRoomCode();
+
+  state.mp.active = true;
+  state.mp.isHost = true;
+  state.mp.roomCode = code;
+  state.mp.myPlayerIdx = 0;
+  state.mp.conns = [];
+  state.mp.lobbyPlayers = [{
+    peerId: 'HOST',
+    name: pName,
+    city: pCity,
+    isBot: false
+  }];
+
+  document.getElementById('mpEntryForm').classList.add('hidden');
+  document.getElementById('mpRoomActive').classList.remove('hidden');
+  document.getElementById('mpHostExtraControls').classList.remove('hidden');
+  document.getElementById('mpRoomCodeText').innerText = code;
+  document.getElementById('mpNetStatusText').innerText = 'Подключение к диспетчерскому шлюзу...';
+  renderLobbyList();
+
+  if (typeof Peer !== 'undefined') {
+    const peer = new Peer('magistral-tek-' + code);
+    state.mp.peer = peer;
+
+    peer.on('open', (id) => {
+      state.mp.myPeerId = id;
+      document.getElementById('mpNetStatusText').innerText = 'Комната активна! Сообщите код игрокам из других городов.';
+      speak(`Комната создана. Код подключения: ${code.split('').join(' ')}.`);
+    });
+
+    peer.on('connection', (conn) => {
+      state.mp.conns.push(conn);
+      conn.on('data', (msg) => handleHostReceivedData(conn, msg));
+      conn.on('close', () => {
+        state.mp.conns = state.mp.conns.filter(c => c !== conn);
+      });
+    });
+
+    peer.on('error', (err) => {
+      document.getElementById('mpNetStatusText').innerText = 'Локальный режим комнаты (код: ' + code + ')';
+    });
+  } else {
+    document.getElementById('mpNetStatusText').innerText = 'Комната готова (код: ' + code + ')';
+  }
+}
+
+function joinOnlineRoom() {
+  const code = (document.getElementById('mpJoinCodeInput').value || '').trim().toUpperCase();
+  if (code.length < 4) {
+    alert('Введите 4-значный код комнаты!');
+    return;
+  }
+  const pName = (document.getElementById('mpPlayerName').value || 'Участник').trim();
+  const pCity = (document.getElementById('mpPlayerCity').value || 'Сургут').trim();
+
+  state.mp.active = true;
+  state.mp.isHost = false;
+  state.mp.roomCode = code;
+
+  document.getElementById('mpEntryForm').classList.add('hidden');
+  document.getElementById('mpRoomActive').classList.remove('hidden');
+  document.getElementById('mpHostExtraControls').classList.add('hidden');
+  document.getElementById('mpRoomCodeText').innerText = code;
+  document.getElementById('mpNetStatusText').innerText = 'Подключение к комнате ' + code + '...';
+
+  if (typeof Peer === 'undefined') {
+    document.getElementById('mpNetStatusText').innerText = 'Нет доступа к сети PeerJS.';
+    return;
+  }
+
+  const peer = new Peer();
+  state.mp.peer = peer;
+
+  peer.on('open', (id) => {
+    state.mp.myPeerId = id;
+    const conn = peer.connect('magistral-tek-' + code);
+    state.mp.hostConn = conn;
+
+    conn.on('open', () => {
+      document.getElementById('mpNetStatusText').innerText = 'Подключено! Ожидаем старта смены от организатора.';
+      conn.send({ type: 'JOIN_REQ', peerId: id, name: pName, city: pCity });
+      speak(`Вы подключились к комнате ${code}. Ожидайте начала смены.`);
+    });
+
+    conn.on('data', (msg) => handleClientReceivedData(msg));
+    conn.on('error', () => {
+      document.getElementById('mpNetStatusText').innerText = 'Не удалось найти комнату с кодом ' + code;
+    });
+  });
+}
+
+function addRemoteTestBot() {
+  if (state.mp.lobbyPlayers.length >= 6) return;
+  const sampleCities = ['Сургут', 'Нефтеюганск', 'Ханты-Мансийск', 'Нижневартовск', 'Когалым'];
+  const sampleNames = ['Максим', 'Алина', 'Даниил', 'София', 'Егор'];
+  const idx = state.mp.lobbyPlayers.length;
+  state.mp.lobbyPlayers.push({
+    peerId: 'BOT_' + idx,
+    name: sampleNames[(idx - 1) % sampleNames.length],
+    city: sampleCities[(idx - 1) % sampleCities.length],
+    isBot: true
+  });
+  playClick(720, 0.04);
+  broadcastLobbyState();
+  renderLobbyList();
+}
+
+function renderLobbyList() {
+  const list = document.getElementById('mpLobbyList');
+  const countEl = document.getElementById('mpLobbyCount');
+  countEl.innerText = state.mp.lobbyPlayers.length;
+
+  list.innerHTML = state.mp.lobbyPlayers.map((lp, idx) => {
+    const meta = PLAYER_META[idx];
+    const isMe = (idx === state.mp.myPlayerIdx);
+    return `
+      <div class="lobby-player" style="border-left-color:${meta.color}">
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:${meta.color}">
+            ${lp.name} ${isMe ? '(Вы)' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--text-dim)">г. ${lp.city} · Фишка: ${meta.token}</div>
+        </div>
+        <span class="net-badge">${idx === 0 ? 'ОРГАНИЗАТОР' : 'В СЕТИ'}</span>
+      </div>
+    `;
+  }).join('');
+
+  if (state.mp.isHost && state.mp.lobbyPlayers.length >= 2) {
+    document.getElementById('mpStartMatchBtn').classList.remove('hidden');
+  }
+}
+
+function broadcastLobbyState() {
+  if (!state.mp.isHost) return;
+  state.mp.conns.forEach(c => {
+    if (c.open) c.send({ type: 'LOBBY_SYNC', lobbyPlayers: state.mp.lobbyPlayers });
+  });
+}
+
+function broadcastGameState(voiceAnnouncement = '') {
+  if (!state.mp.active) return;
+  const payload = {
+    type: 'GAME_SYNC',
+    players: state.players,
+    currentIdx: state.currentIdx,
+    sectorOwners: state.sectorOwners,
+    corpFund: state.corpFund,
+    age: state.age,
+    voice: voiceAnnouncement
+  };
+  if (state.mp.isHost) {
+    state.mp.conns.forEach(c => { if (c.open) c.send(payload); });
+  } else if (state.mp.hostConn && state.mp.hostConn.open) {
+    state.mp.hostConn.send(payload);
+  }
+}
+
+function handleHostReceivedData(conn, msg) {
+  if (msg.type === 'JOIN_REQ') {
+    if (state.mp.lobbyPlayers.length >= 6) return;
+    const assignedIdx = state.mp.lobbyPlayers.length;
+    state.mp.lobbyPlayers.push({
+      peerId: msg.peerId,
+      name: msg.name,
+      city: msg.city,
+      isBot: false
+    });
+    conn.send({ type: 'JOIN_ACK', playerIdx: assignedIdx, lobbyPlayers: state.mp.lobbyPlayers });
+    broadcastLobbyState();
+    renderLobbyList();
+    playClick(820, 0.06);
+    speak(`Подключился игрок ${msg.name} из города ${msg.city}.`);
+  } else if (msg.type === 'GAME_SYNC') {
+    applyRemoteGameSync(msg);
+    // Хост ретранслирует состояние остальным участникам
+    state.mp.conns.forEach(c => { if (c !== conn && c.open) c.send(msg); });
+  }
+}
+
+function handleClientReceivedData(msg) {
+  if (msg.type === 'JOIN_ACK') {
+    state.mp.myPlayerIdx = msg.playerIdx;
+    state.mp.lobbyPlayers = msg.lobbyPlayers;
+    renderLobbyList();
+  } else if (msg.type === 'LOBBY_SYNC') {
+    state.mp.lobbyPlayers = msg.lobbyPlayers;
+    renderLobbyList();
+  } else if (msg.type === 'MATCH_START') {
+    state.players = msg.players;
+    state.count = msg.players.length;
+    state.currentIdx = msg.currentIdx;
+    state.sectorOwners = {};
+    document.getElementById('endGameBtn').classList.remove('hidden');
+    document.getElementById('shopBtn').classList.remove('hidden');
+    renderTurnScreen();
+    showScreen('scr-turn');
+    const starter = state.players[state.currentIdx];
+    speak(`Онлайн-смена началась! Первым ходит ${starter.name} из города ${starter.city}.`);
+  } else if (msg.type === 'GAME_SYNC') {
+    applyRemoteGameSync(msg);
+  }
+}
+
+function applyRemoteGameSync(msg) {
+  state.players = msg.players;
+  state.currentIdx = msg.currentIdx;
+  state.sectorOwners = msg.sectorOwners || {};
+  state.corpFund = msg.corpFund || 0;
+  renderTurnScreen();
+  showScreen('scr-turn');
+  if (msg.voice) speak(msg.voice);
+  checkAndTriggerBotTurn();
+}
+
+function hostStartMultiplayerMatch() {
+  if (!state.mp.isHost || state.mp.lobbyPlayers.length < 2) return;
+  playClick(760, 0.08);
+  state.count = state.mp.lobbyPlayers.length;
+  state.sectorOwners = {};
+  state.corpFund = 20;
+  state.currentIdx = Math.floor(Math.random() * state.count);
+
+  state.players = state.mp.lobbyPlayers.map((lp, idx) => {
+    const m = PLAYER_META[idx];
+    return {
+      num: idx + 1,
+      name: `${lp.name} (${lp.city})`,
+      shortName: lp.name,
+      city: lp.city,
+      isBot: !!lp.isBot,
+      color: m.color,
+      token: m.token,
+      score: 12,
+      posIndex: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      ownedSectors: [],
+      gear: [],
+      skills: { engineering: 1, automation: 1, safety: 1, ecology: 1 }
+    };
+  });
+
+  state.mp.conns.forEach(c => {
+    if (c.open) c.send({ type: 'MATCH_START', players: state.players, currentIdx: state.currentIdx });
+  });
+
+  document.getElementById('endGameBtn').classList.remove('hidden');
+  document.getElementById('shopBtn').classList.remove('hidden');
+  renderTurnScreen();
+  showScreen('scr-turn');
+  const starter = state.players[state.currentIdx];
+  speak(`Онлайн-смена началась! Расставьте фишки на сектор 0 Старт. Первым ходит ${starter.name}.`);
+  checkAndTriggerBotTurn();
+}
+
+function checkAndTriggerBotTurn() {
+  if (!state.mp.active || !state.mp.isHost) return;
+  const cur = state.players[state.currentIdx];
+  if (!cur || !cur.isBot) return;
+
+  setTimeout(() => {
+    const step = Math.floor(Math.random() * 6) + 1;
+    cur.posIndex = (cur.posIndex + step) % BOARD_MAP.length;
+    const cell = BOARD_MAP[cur.posIndex];
+    const isOk = Math.random() > 0.3;
+    let voice = `${cur.shortName} из города ${cur.city} выбросил ${step} и перешёл на сектор ${cell.num}, ${cell.title}. `;
+    if (isOk) {
+      cur.score += 5;
+      cur.correctCount += 1;
+      voice += `Задание выполнено верно, плюс 5 баррелей!`;
+    } else {
+      cur.posIndex = (cur.posIndex - 2 + BOARD_MAP.length) % BOARD_MAP.length;
+      cur.wrongCount += 1;
+      voice += `Ошибка, откат на два сектора назад.`;
+    }
+    state.currentIdx = (state.currentIdx + 1) % state.count;
+    renderTurnScreen();
+    broadcastGameState(voice);
+    speak(voice);
+    checkAndTriggerBotTurn();
+  }, 2600);
 }
 
 function setAge(lvl) {
@@ -1452,11 +1930,22 @@ function renderTurnScreen() {
 
   const rollBtn = document.getElementById('rollBtn');
   const taskBtn = document.getElementById('openTaskBtn');
+  const remoteNotice = document.getElementById('remoteTurnNotice');
+  const localActions = document.getElementById('localActionStack');
 
-  rollBtn.disabled = false;
-  rollBtn.classList.remove('hidden');
-  taskBtn.disabled = true;
-  taskBtn.innerText = 'ВЫПОЛНИТЬ ЗАДАНИЕ КЛЕТКИ';
+  const isRemoteTurn = state.mp.active && (state.currentIdx !== state.mp.myPlayerIdx);
+  if (isRemoteTurn) {
+    remoteNotice.classList.remove('hidden');
+    remoteNotice.innerHTML = `Сейчас ходит <b>${cur.name}</b><br><span style="font-size:12px;color:var(--text-dim);font-weight:400">Ожидайте завершения хода и синхронизации фишки на поле</span>`;
+    localActions.classList.add('hidden');
+  } else {
+    remoteNotice.classList.add('hidden');
+    localActions.classList.remove('hidden');
+    rollBtn.disabled = false;
+    rollBtn.classList.remove('hidden');
+    taskBtn.disabled = true;
+    taskBtn.innerText = 'ВЫПОЛНИТЬ ЗАДАНИЕ КЛЕТКИ';
+  }
 }
 
 function openShop() {
@@ -1919,12 +2408,20 @@ function prepareNextOrWinButton(cur, nextBtn) {
 
 function nextTurn() {
   playClick(600, 0.04);
+  const prevP = state.players[state.currentIdx];
+  const prevCell = BOARD_MAP[prevP.posIndex];
   state.currentIdx = (state.currentIdx + 1) % state.count;
   renderTurnScreen();
   showScreen('scr-turn');
   const nextP = state.players[state.currentIdx];
-  const nextCell = BOARD_MAP[nextP.posIndex];
-  speak(`Ход переходит. Бросает кубик Игрок ${nextP.num}.`);
+  const msg = state.mp.active
+    ? `${prevP.name} завершил ход на секторе ${prevCell.num} (${prevCell.title}). Ход переходит: ${nextP.name}.`
+    : `Ход переходит. Бросает кубик Игрок ${nextP.num}.`;
+  if (state.mp.active) {
+    broadcastGameState(msg);
+    checkAndTriggerBotTurn();
+  }
+  speak(msg);
 }
 
 function getPlayerCareerDiagnosis(p) {
