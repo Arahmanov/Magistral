@@ -954,6 +954,111 @@
     color: #67e8f9;
     font-weight: 600;
   }
+
+  /* ВИДЕОЧАТ JITSI (СВОРАЧИВАЕМЫЙ ВИДЕОМОСТ) */
+  .mini-pill-btn.video {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #34d399;
+  }
+  .mini-pill-btn.video.active-call {
+    background: rgba(16, 185, 129, 0.35);
+    border-color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+    color: #fff;
+  }
+  .video-drawer {
+    flex-shrink: 0;
+    background: #0b1120;
+    border: 1.5px solid var(--emerald);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 290px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+  .video-drawer.minimized {
+    max-height: 38px !important;
+    border-color: rgba(16, 185, 129, 0.45);
+  }
+  .video-drawer.closed {
+    display: none !important;
+  }
+  .video-bar {
+    height: 36px;
+    padding: 0 10px;
+    background: rgba(16, 185, 129, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .video-bar-title {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    color: #34d399;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+    flex-shrink: 0;
+  }
+  .video-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .v-ctrl-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #e2e8f0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .v-ctrl-btn.danger {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+  }
+  .video-frame-wrap {
+    width: 100%;
+    height: 225px;
+    background: #000;
+    position: relative;
+  }
+  .video-frame-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+  .video-https-warn {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fcd34d;
+    font-size: 10px;
+    padding: 4px 10px;
+    text-align: center;
+    border-top: 1px solid rgba(245, 158, 11, 0.3);
+  }
 </style>
 </head>
 <body>
@@ -980,6 +1085,7 @@
       </div>
     </div>
     <div class="top-actions">
+      <button class="mini-pill-btn video hidden" id="videoBtn" onclick="toggleVideoChat()">Видео</button>
       <button class="mini-pill-btn shop hidden" id="shopBtn" onclick="openShop()">Склад</button>
       <button class="mini-pill-btn hidden" id="endGameBtn" onclick="openHRReport()">HR-Итог</button>
       <button class="audio-toggle" onclick="enterFullscreenPortrait()" aria-label="На весь экран" title="На весь экран">
@@ -991,6 +1097,26 @@
       </button>
     </div>
   </header>
+
+  <!-- ВИДЕОМОСТ JITSI (ОСТАЁТСЯ АКТИВНЫМ ПРИ ПЕРЕКЛЮЧЕНИИ ЭКРАНОВ) -->
+  <section class="video-drawer closed" id="videoDrawer">
+    <div class="video-bar">
+      <div class="video-bar-title">
+        <span class="live-dot"></span>
+        <span id="videoRoomLabel">ВИДЕОМОСТ · JITSI</span>
+      </div>
+      <div class="video-bar-actions">
+        <button class="v-ctrl-btn" id="videoSrvBtn" onclick="switchJitsiServer()" title="Сменить сервер Jitsi">Сервер 1</button>
+        <a class="v-ctrl-btn" id="videoExtLink" href="#" target="_blank" rel="noopener">Окно ↗</a>
+        <button class="v-ctrl-btn" id="videoMinBtn" onclick="toggleMinimizeVideo()">Свернуть</button>
+        <button class="v-ctrl-btn danger" onclick="closeVideoChat()">✕</button>
+      </div>
+    </div>
+    <div class="video-frame-wrap" id="videoFrameWrap"></div>
+    <div class="video-https-warn hidden" id="videoHttpsWarn">
+      Локальный файл: если камера не включается, нажмите «Окно ↗» или откройте игру по HTTPS.
+    </div>
+  </section>
 
   <!-- ЭКРАН 1: НАСТРОЙКА ПАРТИИ -->
   <main class="screen active" id="scr-setup">
@@ -1074,6 +1200,8 @@
 
         <div class="section-label" style="margin-top:10px">Участники на связи (<span id="mpLobbyCount">1</span>/6)</div>
         <div class="lobby-list" id="mpLobbyList"></div>
+
+        <button class="cta-btn cyan" style="min-height:46px;padding:10px;font-size:14px;margin-bottom:6px" onclick="openVideoChat()">📹 ВКЛЮЧИТЬ ВИДЕОЧАТ (JITSI)</button>
 
         <div style="display:flex;gap:8px;margin-top:6px" id="mpHostExtraControls">
           <button class="tek-btn" style="flex:1;padding:10px" onclick="addRemoteTestBot()">+ Тест-игрок (г. Сургут)</button>
@@ -1332,9 +1460,13 @@ let state = {
     roomCode: '',
     myClientId: '',
     myPlayerIdx: 0,
+    myDisplayName: '',
     client: null,
     topic: '',
-    lobbyPlayers: []
+    lobbyPlayers: [],
+    videoOpen: false,
+    videoMinimized: false,
+    jitsiServerIdx: 0
   }
 };
 
@@ -1447,7 +1579,90 @@ function openOnlineLobby() {
   speak('Режим мультиплеера. Создайте комнату или введите четырёхзначный код для подключения.');
 }
 
+const JITSI_SERVERS = [
+  { name: 'Сервер 1', domain: 'meet.ffmuc.net' },
+  { name: 'Сервер 2', domain: 'meet.jit.si' }
+];
+
+function getJitsiRoomUrl() {
+  const srv = JITSI_SERVERS[state.mp.jitsiServerIdx % JITSI_SERVERS.length];
+  const code = state.mp.roomCode || 'DEMO';
+  const roomName = 'MagistralTEK_Room_' + code;
+  const displayName = encodeURIComponent(state.mp.myDisplayName || 'Игрок');
+  const hashParams = [
+    'config.prejoinPageEnabled=false',
+    'config.disableDeepLinking=true',
+    'config.startWithAudioMuted=false',
+    'config.startWithVideoMuted=false',
+    'interfaceConfig.SHOW_JITSI_WATERMARK=false',
+    'interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false',
+    'interfaceConfig.MOBILE_APP_PROMO=false',
+    'userInfo.displayName="' + displayName + '"'
+  ].join('&');
+  return `https://${srv.domain}/${roomName}#${hashParams}`;
+}
+
+function openVideoChat() {
+  if (!state.mp.roomCode) return;
+  playClick(720, 0.05);
+  const drawer = document.getElementById('videoDrawer');
+  const wrap = document.getElementById('videoFrameWrap');
+  const btn = document.getElementById('videoBtn');
+  const url = getJitsiRoomUrl();
+  const srv = JITSI_SERVERS[state.mp.jitsiServerIdx % JITSI_SERVERS.length];
+
+  document.getElementById('videoRoomLabel').innerText = `ВИДЕОМОСТ · КОМНАТА ${state.mp.roomCode}`;
+  document.getElementById('videoSrvBtn').innerText = srv.name;
+  document.getElementById('videoExtLink').href = url;
+  document.getElementById('videoHttpsWarn').classList.toggle('hidden', window.location.protocol === 'https:');
+
+  if (!state.mp.videoOpen) {
+    wrap.innerHTML = `<iframe src="${url}" allow="camera; microphone; fullscreen; display-capture; autoplay" allowfullscreen></iframe>`;
+    state.mp.videoOpen = true;
+  }
+
+  state.mp.videoMinimized = false;
+  drawer.classList.remove('closed', 'minimized');
+  document.getElementById('videoMinBtn').innerText = 'Свернуть';
+  btn.classList.remove('hidden');
+  btn.classList.add('active-call');
+}
+
+function toggleVideoChat() {
+  if (!state.mp.videoOpen) {
+    openVideoChat();
+  } else {
+    toggleMinimizeVideo();
+  }
+}
+
+function toggleMinimizeVideo() {
+  playClick(520, 0.03);
+  const drawer = document.getElementById('videoDrawer');
+  state.mp.videoMinimized = !state.mp.videoMinimized;
+  drawer.classList.toggle('minimized', state.mp.videoMinimized);
+  document.getElementById('videoMinBtn').innerText = state.mp.videoMinimized ? 'Развернуть' : 'Свернуть';
+}
+
+function switchJitsiServer() {
+  playClick(600, 0.04);
+  state.mp.jitsiServerIdx = (state.mp.jitsiServerIdx + 1) % JITSI_SERVERS.length;
+  state.mp.videoOpen = false;
+  openVideoChat();
+}
+
+function closeVideoChat() {
+  playClick(400, 0.05);
+  state.mp.videoOpen = false;
+  state.mp.videoMinimized = false;
+  document.getElementById('videoFrameWrap').innerHTML = '';
+  document.getElementById('videoDrawer').classList.add('closed');
+  document.getElementById('videoBtn').classList.remove('active-call');
+}
+
 function leaveOnlineLobby() {
+  closeVideoChat();
+  document.getElementById('videoBtn').classList.add('hidden');
   if (state.mp.client) {
     try { state.mp.client.end(true); } catch (e) {}
   }
@@ -1550,6 +1765,8 @@ function createOnlineRoom() {
   state.mp.roomCode = code;
   state.mp.topic = 'magistral/tek/v2/room/' + code;
   state.mp.myPlayerIdx = 0;
+  state.mp.myDisplayName = `${pName} (${pCity})`;
+  document.getElementById('videoBtn').classList.remove('hidden');
   state.mp.lobbyPlayers = [{
     clientId: 'HOST',
     name: pName,
@@ -1589,7 +1806,9 @@ function joinOnlineRoom() {
   state.mp.isHost = false;
   state.mp.roomCode = code;
   state.mp.topic = 'magistral/tek/v2/room/' + code;
+  state.mp.myDisplayName = `${pName} (${pCity})`;
   state.mp.lobbyPlayers = [];
+  document.getElementById('videoBtn').classList.remove('hidden');
 
   document.getElementById('mpEntryForm').classList.add('hidden');
   document.getElementById('mpRoomActive').classList.remove('hidden');
