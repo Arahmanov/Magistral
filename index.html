@@ -869,7 +869,7 @@
 
   .dispatcher-bar { flex-shrink: 0; padding: 10px 14px; font-size: 13px !important; border-radius: 12px; }
 </style>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <style>
   /* ОНЛАЙН-МУЛЬТИПЛЕЕР (МЕЖГОРОДСКАЯ ДИСПЕТЧЕРСКАЯ СЕТЬ) */
   .mode-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
@@ -1330,11 +1330,10 @@ let state = {
     active: false,
     isHost: false,
     roomCode: '',
-    myPeerId: '',
+    myClientId: '',
     myPlayerIdx: 0,
-    peer: null,
-    conns: [],
-    hostConn: null,
+    client: null,
+    topic: '',
     lobbyPlayers: []
   }
 };
@@ -1449,13 +1448,12 @@ function openOnlineLobby() {
 }
 
 function leaveOnlineLobby() {
-  if (state.mp.peer) {
-    try { state.mp.peer.destroy(); } catch (e) {}
+  if (state.mp.client) {
+    try { state.mp.client.end(true); } catch (e) {}
   }
   state.mp.active = false;
-  state.mp.peer = null;
-  state.mp.conns = [];
-  state.mp.hostConn = null;
+  state.mp.client = null;
+  state.mp.topic = '';
   showScreen('scr-setup');
 }
 
@@ -1466,6 +1464,82 @@ function generateRoomCode() {
   return code;
 }
 
+function connectMqttBroker(onConnected, onError, brokerIdx = 0) {
+  const brokers = [
+    'wss://broker.emqx.io:8084/mqtt',
+    'wss://broker.hivemq.com:8884/mqtt'
+  ];
+  if (typeof mqtt === 'undefined') {
+    onError('Библиотека MQTT не загружена (проверьте интернет).');
+    return;
+  }
+  if (brokerIdx >= brokers.length) {
+    onError('Не удалось подключиться к облачному шлюзу. Проверьте интернет.');
+    return;
+  }
+
+  const url = brokers[brokerIdx];
+  const clientId = 'mag_' + Math.random().toString(16).slice(2, 10);
+  state.mp.myClientId = clientId;
+
+  let settled = false;
+  const client = mqtt.connect(url, {
+    clientId: clientId,
+    clean: true,
+    connectTimeout: 6000,
+    reconnectPeriod: 3000
+  });
+  state.mp.client = client;
+
+  const fallbackTimer = setTimeout(() => {
+    if (!settled) {
+      settled = true;
+      try { client.end(true); } catch (e) {}
+      connectMqttBroker(onConnected, onError, brokerIdx + 1);
+    }
+  }, 6500);
+
+  client.on('connect', () => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(fallbackTimer);
+    client.subscribe(state.mp.topic, { qos: 0 }, (err) => {
+      if (err) {
+        onError('Ошибка подписки на комнату.');
+      } else {
+        onConnected();
+      }
+    });
+  });
+
+  client.on('message', (topic, message) => {
+    try {
+      const msg = JSON.parse(message.toString());
+      if (msg.senderId === state.mp.myClientId) return;
+      if (state.mp.isHost) {
+        handleHostReceivedData(msg);
+      } else {
+        handleClientReceivedData(msg);
+      }
+    } catch (e) {}
+  });
+
+  client.on('error', () => {
+    if (!settled) {
+      settled = true;
+      clearTimeout(fallbackTimer);
+      try { client.end(true); } catch (e) {}
+      connectMqttBroker(onConnected, onError, brokerIdx + 1);
+    }
+  });
+}
+
+function sendMqttMessage(payload) {
+  if (!state.mp.client || !state.mp.client.connected || !state.mp.topic) return;
+  payload.senderId = state.mp.myClientId;
+  state.mp.client.publish(state.mp.topic, JSON.stringify(payload));
+}
+
 function createOnlineRoom() {
   const pName = (document.getElementById('mpPlayerName').value || 'Игрок 1').trim();
   const pCity = (document.getElementById('mpPlayerCity').value || 'Пойковский').trim();
@@ -1474,10 +1548,10 @@ function createOnlineRoom() {
   state.mp.active = true;
   state.mp.isHost = true;
   state.mp.roomCode = code;
+  state.mp.topic = 'magistral/tek/v2/room/' + code;
   state.mp.myPlayerIdx = 0;
-  state.mp.conns = [];
   state.mp.lobbyPlayers = [{
-    peerId: 'HOST',
+    clientId: 'HOST',
     name: pName,
     city: pCity,
     isBot: false
@@ -1487,33 +1561,19 @@ function createOnlineRoom() {
   document.getElementById('mpRoomActive').classList.remove('hidden');
   document.getElementById('mpHostExtraControls').classList.remove('hidden');
   document.getElementById('mpRoomCodeText').innerText = code;
-  document.getElementById('mpNetStatusText').innerText = 'Подключение к диспетчерскому шлюзу...';
+  document.getElementById('mpNetStatusText').innerText = 'Подключение к облачному шлюзу MQTT...';
   renderLobbyList();
 
-  if (typeof Peer !== 'undefined') {
-    const peer = new Peer('magistral-tek-' + code);
-    state.mp.peer = peer;
-
-    peer.on('open', (id) => {
-      state.mp.myPeerId = id;
-      document.getElementById('mpNetStatusText').innerText = 'Комната активна! Сообщите код игрокам из других городов.';
+  connectMqttBroker(
+    () => {
+      state.mp.lobbyPlayers[0].clientId = state.mp.myClientId;
+      document.getElementById('mpNetStatusText').innerText = 'Комната активна (MQTT WebSocket)! Сообщите код игрокам из других городов.';
       speak(`Комната создана. Код подключения: ${code.split('').join(' ')}.`);
-    });
-
-    peer.on('connection', (conn) => {
-      state.mp.conns.push(conn);
-      conn.on('data', (msg) => handleHostReceivedData(conn, msg));
-      conn.on('close', () => {
-        state.mp.conns = state.mp.conns.filter(c => c !== conn);
-      });
-    });
-
-    peer.on('error', (err) => {
-      document.getElementById('mpNetStatusText').innerText = 'Локальный режим комнаты (код: ' + code + ')';
-    });
-  } else {
-    document.getElementById('mpNetStatusText').innerText = 'Комната готова (код: ' + code + ')';
-  }
+    },
+    (errText) => {
+      document.getElementById('mpNetStatusText').innerText = errText;
+    }
+  );
 }
 
 function joinOnlineRoom() {
@@ -1528,37 +1588,30 @@ function joinOnlineRoom() {
   state.mp.active = true;
   state.mp.isHost = false;
   state.mp.roomCode = code;
+  state.mp.topic = 'magistral/tek/v2/room/' + code;
+  state.mp.lobbyPlayers = [];
 
   document.getElementById('mpEntryForm').classList.add('hidden');
   document.getElementById('mpRoomActive').classList.remove('hidden');
   document.getElementById('mpHostExtraControls').classList.add('hidden');
   document.getElementById('mpRoomCodeText').innerText = code;
-  document.getElementById('mpNetStatusText').innerText = 'Подключение к комнате ' + code + '...';
+  document.getElementById('mpNetStatusText').innerText = 'Подключение к комнате ' + code + ' через MQTT...';
 
-  if (typeof Peer === 'undefined') {
-    document.getElementById('mpNetStatusText').innerText = 'Нет доступа к сети PeerJS.';
-    return;
-  }
-
-  const peer = new Peer();
-  state.mp.peer = peer;
-
-  peer.on('open', (id) => {
-    state.mp.myPeerId = id;
-    const conn = peer.connect('magistral-tek-' + code);
-    state.mp.hostConn = conn;
-
-    conn.on('open', () => {
-      document.getElementById('mpNetStatusText').innerText = 'Подключено! Ожидаем старта смены от организатора.';
-      conn.send({ type: 'JOIN_REQ', peerId: id, name: pName, city: pCity });
-      speak(`Вы подключились к комнате ${code}. Ожидайте начала смены.`);
-    });
-
-    conn.on('data', (msg) => handleClientReceivedData(msg));
-    conn.on('error', () => {
-      document.getElementById('mpNetStatusText').innerText = 'Не удалось найти комнату с кодом ' + code;
-    });
-  });
+  connectMqttBroker(
+    () => {
+      document.getElementById('mpNetStatusText').innerText = 'Связь установлена! Отправляем запрос организатору...';
+      sendMqttMessage({ type: 'JOIN_REQ', name: pName, city: pCity });
+      // Повторная отправка через 2 сек, если пакет потерялся
+      setTimeout(() => {
+        if (state.mp.active && !state.mp.isHost && state.mp.lobbyPlayers.length === 0) {
+          sendMqttMessage({ type: 'JOIN_REQ', name: pName, city: pCity });
+        }
+      }, 2000);
+    },
+    (errText) => {
+      document.getElementById('mpNetStatusText').innerText = errText;
+    }
+  );
 }
 
 function addRemoteTestBot() {
@@ -1567,7 +1620,7 @@ function addRemoteTestBot() {
   const sampleNames = ['Максим', 'Алина', 'Даниил', 'София', 'Егор'];
   const idx = state.mp.lobbyPlayers.length;
   state.mp.lobbyPlayers.push({
-    peerId: 'BOT_' + idx,
+    clientId: 'BOT_' + idx,
     name: sampleNames[(idx - 1) % sampleNames.length],
     city: sampleCities[(idx - 1) % sampleCities.length],
     isBot: true
@@ -1605,14 +1658,12 @@ function renderLobbyList() {
 
 function broadcastLobbyState() {
   if (!state.mp.isHost) return;
-  state.mp.conns.forEach(c => {
-    if (c.open) c.send({ type: 'LOBBY_SYNC', lobbyPlayers: state.mp.lobbyPlayers });
-  });
+  sendMqttMessage({ type: 'LOBBY_SYNC', lobbyPlayers: state.mp.lobbyPlayers });
 }
 
 function broadcastGameState(voiceAnnouncement = '') {
   if (!state.mp.active) return;
-  const payload = {
+  sendMqttMessage({
     type: 'GAME_SYNC',
     players: state.players,
     currentIdx: state.currentIdx,
@@ -1620,41 +1671,46 @@ function broadcastGameState(voiceAnnouncement = '') {
     corpFund: state.corpFund,
     age: state.age,
     voice: voiceAnnouncement
-  };
-  if (state.mp.isHost) {
-    state.mp.conns.forEach(c => { if (c.open) c.send(payload); });
-  } else if (state.mp.hostConn && state.mp.hostConn.open) {
-    state.mp.hostConn.send(payload);
-  }
+  });
 }
 
-function handleHostReceivedData(conn, msg) {
+function handleHostReceivedData(msg) {
   if (msg.type === 'JOIN_REQ') {
     if (state.mp.lobbyPlayers.length >= 6) return;
-    const assignedIdx = state.mp.lobbyPlayers.length;
-    state.mp.lobbyPlayers.push({
-      peerId: msg.peerId,
-      name: msg.name,
-      city: msg.city,
-      isBot: false
+    const existingIdx = state.mp.lobbyPlayers.findIndex(p => p.clientId === msg.senderId);
+    let assignedIdx = existingIdx;
+    if (existingIdx === -1) {
+      assignedIdx = state.mp.lobbyPlayers.length;
+      state.mp.lobbyPlayers.push({
+        clientId: msg.senderId,
+        name: msg.name,
+        city: msg.city,
+        isBot: false
+      });
+      playClick(820, 0.06);
+      speak(`Подключился игрок ${msg.name} из города ${msg.city}.`);
+    }
+    sendMqttMessage({
+      type: 'JOIN_ACK',
+      targetId: msg.senderId,
+      playerIdx: assignedIdx,
+      lobbyPlayers: state.mp.lobbyPlayers
     });
-    conn.send({ type: 'JOIN_ACK', playerIdx: assignedIdx, lobbyPlayers: state.mp.lobbyPlayers });
     broadcastLobbyState();
     renderLobbyList();
-    playClick(820, 0.06);
-    speak(`Подключился игрок ${msg.name} из города ${msg.city}.`);
   } else if (msg.type === 'GAME_SYNC') {
     applyRemoteGameSync(msg);
-    // Хост ретранслирует состояние остальным участникам
-    state.mp.conns.forEach(c => { if (c !== conn && c.open) c.send(msg); });
   }
 }
 
 function handleClientReceivedData(msg) {
-  if (msg.type === 'JOIN_ACK') {
+  if (msg.type === 'JOIN_ACK' && msg.targetId === state.mp.myClientId) {
     state.mp.myPlayerIdx = msg.playerIdx;
     state.mp.lobbyPlayers = msg.lobbyPlayers;
+    document.getElementById('mpNetStatusText').innerText = 'Вы в комнате! Ожидайте старта смены от организатора.';
     renderLobbyList();
+    playClick(820, 0.06);
+    speak(`Вы подключились к комнате ${state.mp.roomCode}. Ожидайте начала смены.`);
   } else if (msg.type === 'LOBBY_SYNC') {
     state.mp.lobbyPlayers = msg.lobbyPlayers;
     renderLobbyList();
@@ -1668,7 +1724,7 @@ function handleClientReceivedData(msg) {
     renderTurnScreen();
     showScreen('scr-turn');
     const starter = state.players[state.currentIdx];
-    speak(`Онлайн-смена началась! Первым ходит ${starter.name} из города ${starter.city}.`);
+    speak(`Онлайн-смена началась! Первым ходит ${starter.name}.`);
   } else if (msg.type === 'GAME_SYNC') {
     applyRemoteGameSync(msg);
   }
@@ -1713,9 +1769,7 @@ function hostStartMultiplayerMatch() {
     };
   });
 
-  state.mp.conns.forEach(c => {
-    if (c.open) c.send({ type: 'MATCH_START', players: state.players, currentIdx: state.currentIdx });
-  });
+  sendMqttMessage({ type: 'MATCH_START', players: state.players, currentIdx: state.currentIdx });
 
   document.getElementById('endGameBtn').classList.remove('hidden');
   document.getElementById('shopBtn').classList.remove('hidden');
