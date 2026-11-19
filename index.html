@@ -869,7 +869,7 @@
 
   .dispatcher-bar { flex-shrink: 0; padding: 10px 14px; font-size: 13px !important; border-radius: 12px; }
 </style>
-<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js';document.head.appendChild(s);"></script>
 <style>
   /* ОНЛАЙН-МУЛЬТИПЛЕЕР (МЕЖГОРОДСКАЯ ДИСПЕТЧЕРСКАЯ СЕТЬ) */
   .mode-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
@@ -1114,7 +1114,7 @@
     </div>
     <div class="video-frame-wrap" id="videoFrameWrap"></div>
     <div class="video-https-warn hidden" id="videoHttpsWarn">
-      Локальный файл: если камера не включается, нажмите «Окно ↗» или откройте игру по HTTPS.
+      ⚠️ Файл открыт локально — браузер может блокировать камеру внутри окна. Нажмите <b>«Окно ↗»</b> выше, чтобы зайти с камерой напрямую!
     </div>
   </section>
 
@@ -1201,7 +1201,7 @@
         <div class="section-label" style="margin-top:10px">Участники на связи (<span id="mpLobbyCount">1</span>/6)</div>
         <div class="lobby-list" id="mpLobbyList"></div>
 
-        <button class="cta-btn cyan" style="min-height:46px;padding:10px;font-size:14px;margin-bottom:6px" onclick="openVideoChat()">📹 ВКЛЮЧИТЬ ВИДЕОЧАТ (JITSI)</button>
+        <button class="cta-btn cyan" style="min-height:46px;padding:10px;font-size:14px;margin-bottom:6px" onclick="openVideoChat()">📹 ВКЛЮЧИТЬ ВИДЕОЧАТ</button>
 
         <div style="display:flex;gap:8px;margin-top:6px" id="mpHostExtraControls">
           <button class="tek-btn" style="flex:1;padding:10px" onclick="addRemoteTestBot()">+ Тест-игрок (г. Сургут)</button>
@@ -1466,7 +1466,9 @@ let state = {
     lobbyPlayers: [],
     videoOpen: false,
     videoMinimized: false,
-    jitsiServerIdx: 0
+    jitsiServerIdx: 0,
+    joinRetryTimer: null,
+    brokerIdx: 0
   }
 };
 
@@ -1579,16 +1581,28 @@ function openOnlineLobby() {
   speak('Режим мультиплеера. Создайте комнату или введите четырёхзначный код для подключения.');
 }
 
-const JITSI_SERVERS = [
-  { name: 'Сервер 1', domain: 'meet.ffmuc.net' },
-  { name: 'Сервер 2', domain: 'meet.jit.si' }
+const VIDEO_SERVERS = [
+  { name: 'VDO (Реком.)', type: 'vdo', domain: 'vdo.ninja' },
+  { name: 'Jitsi 1', type: 'jitsi', domain: 'meet.ffmuc.net' },
+  { name: 'Jitsi 2', type: 'jitsi', domain: 'meet.jit.si' }
 ];
 
-function getJitsiRoomUrl() {
-  const srv = JITSI_SERVERS[state.mp.jitsiServerIdx % JITSI_SERVERS.length];
+const MQTT_BROKERS = [
+  { name: 'EMQX', url: 'wss://broker.emqx.io:8084/mqtt' },
+  { name: 'HiveMQ', url: 'wss://broker.hivemq.com:8884/mqtt' }
+];
+
+function getVideoRoomUrl() {
+  const srv = VIDEO_SERVERS[state.mp.jitsiServerIdx % VIDEO_SERVERS.length];
   const code = state.mp.roomCode || 'DEMO';
-  const roomName = 'MagistralTEK_Room_' + code;
+  const roomName = 'MagistralTEK_' + code;
   const displayName = encodeURIComponent(state.mp.myDisplayName || 'Игрок');
+
+  if (srv.type === 'vdo') {
+    // VDO.Ninja не требует логина организатора и стабильно работает в iframe на смартфонах
+    return `https://vdo.ninja/?room=${roomName}&label=${displayName}&autostart&wc&noheader&cleanoutput`;
+  }
+
   const hashParams = [
     'config.prejoinPageEnabled=false',
     'config.disableDeepLinking=true',
@@ -1602,16 +1616,16 @@ function getJitsiRoomUrl() {
   return `https://${srv.domain}/${roomName}#${hashParams}`;
 }
 
-function openVideoChat() {
+function openVideoChat(silentSync = false) {
   if (!state.mp.roomCode) return;
   playClick(720, 0.05);
   const drawer = document.getElementById('videoDrawer');
   const wrap = document.getElementById('videoFrameWrap');
   const btn = document.getElementById('videoBtn');
-  const url = getJitsiRoomUrl();
-  const srv = JITSI_SERVERS[state.mp.jitsiServerIdx % JITSI_SERVERS.length];
+  const url = getVideoRoomUrl();
+  const srv = VIDEO_SERVERS[state.mp.jitsiServerIdx % VIDEO_SERVERS.length];
 
-  document.getElementById('videoRoomLabel').innerText = `ВИДЕОМОСТ · КОМНАТА ${state.mp.roomCode}`;
+  document.getElementById('videoRoomLabel').innerText = `ВИДЕО · ${state.mp.roomCode}`;
   document.getElementById('videoSrvBtn').innerText = srv.name;
   document.getElementById('videoExtLink').href = url;
   document.getElementById('videoHttpsWarn').classList.toggle('hidden', window.location.protocol === 'https:');
@@ -1626,6 +1640,11 @@ function openVideoChat() {
   document.getElementById('videoMinBtn').innerText = 'Свернуть';
   btn.classList.remove('hidden');
   btn.classList.add('active-call');
+
+  // Синхронизируем выбранный видеосервер с остальными участниками комнаты
+  if (!silentSync && state.mp.active) {
+    sendMqttMessage({ type: 'VIDEO_SRV_SYNC', serverIdx: state.mp.jitsiServerIdx });
+  }
 }
 
 function toggleVideoChat() {
@@ -1646,9 +1665,9 @@ function toggleMinimizeVideo() {
 
 function switchJitsiServer() {
   playClick(600, 0.04);
-  state.mp.jitsiServerIdx = (state.mp.jitsiServerIdx + 1) % JITSI_SERVERS.length;
+  state.mp.jitsiServerIdx = (state.mp.jitsiServerIdx + 1) % VIDEO_SERVERS.length;
   state.mp.videoOpen = false;
-  openVideoChat();
+  openVideoChat(false);
 }
 
 function closeVideoChat() {
@@ -1660,7 +1679,15 @@ function closeVideoChat() {
   document.getElementById('videoBtn').classList.remove('active-call');
 }
 
+function stopJoinRetry() {
+  if (state.mp.joinRetryTimer) {
+    clearInterval(state.mp.joinRetryTimer);
+    state.mp.joinRetryTimer = null;
+  }
+}
+
 function leaveOnlineLobby() {
+  stopJoinRetry();
   closeVideoChat();
   document.getElementById('videoBtn').classList.add('hidden');
   if (state.mp.client) {
@@ -1680,29 +1707,26 @@ function generateRoomCode() {
 }
 
 function connectMqttBroker(onConnected, onError, brokerIdx = 0) {
-  const brokers = [
-    'wss://broker.emqx.io:8084/mqtt',
-    'wss://broker.hivemq.com:8884/mqtt'
-  ];
   if (typeof mqtt === 'undefined') {
-    onError('Библиотека MQTT не загружена (проверьте интернет).');
+    onError('Нет доступа к библиотеке MQTT. Проверьте интернет и откройте в Chrome/Safari.');
     return;
   }
-  if (brokerIdx >= brokers.length) {
+  if (brokerIdx >= MQTT_BROKERS.length) {
     onError('Не удалось подключиться к облачному шлюзу. Проверьте интернет.');
     return;
   }
 
-  const url = brokers[brokerIdx];
+  const broker = MQTT_BROKERS[brokerIdx];
+  state.mp.brokerIdx = brokerIdx;
   const clientId = 'mag_' + Math.random().toString(16).slice(2, 10);
   state.mp.myClientId = clientId;
 
   let settled = false;
-  const client = mqtt.connect(url, {
+  const client = mqtt.connect(broker.url, {
     clientId: clientId,
     clean: true,
-    connectTimeout: 6000,
-    reconnectPeriod: 3000
+    connectTimeout: 8000,
+    reconnectPeriod: 2500
   });
   state.mp.client = client;
 
@@ -1712,7 +1736,7 @@ function connectMqttBroker(onConnected, onError, brokerIdx = 0) {
       try { client.end(true); } catch (e) {}
       connectMqttBroker(onConnected, onError, brokerIdx + 1);
     }
-  }, 6500);
+  }, 8500);
 
   client.on('connect', () => {
     if (settled) return;
@@ -1722,7 +1746,7 @@ function connectMqttBroker(onConnected, onError, brokerIdx = 0) {
       if (err) {
         onError('Ошибка подписки на комнату.');
       } else {
-        onConnected();
+        onConnected(broker.name);
       }
     });
   });
@@ -1731,6 +1755,14 @@ function connectMqttBroker(onConnected, onError, brokerIdx = 0) {
     try {
       const msg = JSON.parse(message.toString());
       if (msg.senderId === state.mp.myClientId) return;
+      if (msg.type === 'VIDEO_SRV_SYNC') {
+        state.mp.jitsiServerIdx = msg.serverIdx || 0;
+        if (state.mp.videoOpen) {
+          state.mp.videoOpen = false;
+          openVideoChat(true);
+        }
+        return;
+      }
       if (state.mp.isHost) {
         handleHostReceivedData(msg);
       } else {
@@ -1756,6 +1788,7 @@ function sendMqttMessage(payload) {
 }
 
 function createOnlineRoom() {
+  stopJoinRetry();
   const pName = (document.getElementById('mpPlayerName').value || 'Игрок 1').trim();
   const pCity = (document.getElementById('mpPlayerCity').value || 'Пойковский').trim();
   const code = generateRoomCode();
@@ -1782,9 +1815,9 @@ function createOnlineRoom() {
   renderLobbyList();
 
   connectMqttBroker(
-    () => {
+    (brokerName) => {
       state.mp.lobbyPlayers[0].clientId = state.mp.myClientId;
-      document.getElementById('mpNetStatusText').innerText = 'Комната активна (MQTT WebSocket)! Сообщите код игрокам из других городов.';
+      document.getElementById('mpNetStatusText').innerText = `Комната активна (шлюз ${brokerName})! Сообщите код игрокам.`;
       speak(`Комната создана. Код подключения: ${code.split('').join(' ')}.`);
     },
     (errText) => {
@@ -1794,6 +1827,7 @@ function createOnlineRoom() {
 }
 
 function joinOnlineRoom() {
+  stopJoinRetry();
   const code = (document.getElementById('mpJoinCodeInput').value || '').trim().toUpperCase();
   if (code.length < 4) {
     alert('Введите 4-значный код комнаты!');
@@ -1814,18 +1848,21 @@ function joinOnlineRoom() {
   document.getElementById('mpRoomActive').classList.remove('hidden');
   document.getElementById('mpHostExtraControls').classList.add('hidden');
   document.getElementById('mpRoomCodeText').innerText = code;
-  document.getElementById('mpNetStatusText').innerText = 'Подключение к комнате ' + code + ' через MQTT...';
+  document.getElementById('mpNetStatusText').innerText = 'Подключение к комнате ' + code + '...';
 
   connectMqttBroker(
-    () => {
-      document.getElementById('mpNetStatusText').innerText = 'Связь установлена! Отправляем запрос организатору...';
-      sendMqttMessage({ type: 'JOIN_REQ', name: pName, city: pCity });
-      // Повторная отправка через 2 сек, если пакет потерялся
-      setTimeout(() => {
-        if (state.mp.active && !state.mp.isHost && state.mp.lobbyPlayers.length === 0) {
-          sendMqttMessage({ type: 'JOIN_REQ', name: pName, city: pCity });
+    (brokerName) => {
+      document.getElementById('mpNetStatusText').innerText = `Шлюз ${brokerName} подключён. Ищем организатора комнаты ${code}...`;
+      const sendReq = () => sendMqttMessage({ type: 'JOIN_REQ', name: pName, city: pCity });
+      sendReq();
+      // Повторяем запрос каждые 2.5 сек, пока организатор не ответит
+      state.mp.joinRetryTimer = setInterval(() => {
+        if (!state.mp.active || state.mp.isHost || state.mp.lobbyPlayers.length > 0) {
+          stopJoinRetry();
+          return;
         }
-      }, 2000);
+        sendReq();
+      }, 2500);
     },
     (errText) => {
       document.getElementById('mpNetStatusText').innerText = errText;
@@ -1913,7 +1950,8 @@ function handleHostReceivedData(msg) {
       type: 'JOIN_ACK',
       targetId: msg.senderId,
       playerIdx: assignedIdx,
-      lobbyPlayers: state.mp.lobbyPlayers
+      lobbyPlayers: state.mp.lobbyPlayers,
+      videoServerIdx: state.mp.jitsiServerIdx
     });
     broadcastLobbyState();
     renderLobbyList();
@@ -1924,8 +1962,10 @@ function handleHostReceivedData(msg) {
 
 function handleClientReceivedData(msg) {
   if (msg.type === 'JOIN_ACK' && msg.targetId === state.mp.myClientId) {
+    stopJoinRetry();
     state.mp.myPlayerIdx = msg.playerIdx;
     state.mp.lobbyPlayers = msg.lobbyPlayers;
+    if (typeof msg.videoServerIdx === 'number') state.mp.jitsiServerIdx = msg.videoServerIdx;
     document.getElementById('mpNetStatusText').innerText = 'Вы в комнате! Ожидайте старта смены от организатора.';
     renderLobbyList();
     playClick(820, 0.06);
@@ -1934,6 +1974,7 @@ function handleClientReceivedData(msg) {
     state.mp.lobbyPlayers = msg.lobbyPlayers;
     renderLobbyList();
   } else if (msg.type === 'MATCH_START') {
+    stopJoinRetry();
     state.players = msg.players;
     state.count = msg.players.length;
     state.currentIdx = msg.currentIdx;
