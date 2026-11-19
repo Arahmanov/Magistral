@@ -1059,6 +1059,179 @@
     text-align: center;
     border-top: 1px solid rgba(245, 158, 11, 0.3);
   }
+
+  /* КОМПАКТНЫЕ КНОПКИ-ИКОНКИ В ШАПКЕ (ПОМЕЩАЮТСЯ НА ЛЮБОМ СМАРТФОНЕ) */
+  .topbar { padding: 8px 10px !important; gap: 6px; }
+  .brand { gap: 7px !important; min-width: 0; }
+  .brand h1 { font-size: 17px !important; letter-spacing: 0.8px !important; white-space: nowrap; }
+  .brand span { font-size: 9.5px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 135px; }
+  .top-actions { gap: 5px !important; flex-shrink: 0; }
+  .audio-toggle,
+  .icon-pill-btn {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    border: 1px solid var(--border-strong);
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+  }
+  .icon-pill-btn:active, .audio-toggle:active { transform: scale(0.93); }
+  .icon-pill-btn.video {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #34d399;
+  }
+  .icon-pill-btn.video.active-call {
+    background: rgba(16, 185, 129, 0.38);
+    border-color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    color: #fff;
+  }
+  .icon-pill-btn.video.ringing {
+    animation: pulseRing 1.1s infinite;
+  }
+  @keyframes pulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  }
+  .icon-pill-btn.shop {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fcd34d;
+  }
+  .icon-pill-btn.hr {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.55);
+    color: #c4b5fd;
+  }
+
+  /* БАННЕР ПРИГЛАШЕНИЯ В ВИДЕОЧАТ ДЛЯ ОСТАЛЬНЫХ ИГРОКОВ */
+  .video-invite-bar {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.22), rgba(6, 182, 212, 0.22));
+    border: 1.5px solid #34d399;
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .video-invite-text { font-size: 12px; font-weight: 700; color: #ecfdf5; }
+  .video-invite-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .video-join-btn {
+    background: #10b981;
+    color: #022c22;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  /* ПАНЕЛЬ ГОЛОСОВЫХ КОМАНД F5DS */
+  .f5-mic-fab {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(167, 139, 250, 0.8);
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 0 14px rgba(139, 92, 246, 0.5);
+  }
+  .f5-mic-fab.listening {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border-color: #fca5a5;
+    animation: pulseMic 1s infinite;
+  }
+  @keyframes pulseMic {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    50% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); }
+  }
+  .f5-panel {
+    flex-shrink: 0;
+    background: #131b2e;
+    border: 1.5px solid var(--violet);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 -6px 26px rgba(0, 0, 0, 0.65);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .f5-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .f5-panel-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    color: #c4b5fd;
+    letter-spacing: 0.8px;
+  }
+  .f5-listen-btn {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(167, 139, 250, 0.6);
+    background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .f5-listen-btn.listening {
+    background: linear-gradient(180deg, #ef4444, #b91c1c);
+    border-color: #fca5a5;
+  }
+  .f5-transcript {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    min-height: 16px;
+  }
+  .f5-chips {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .f5-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    color: #e2e8f0;
+    padding: 8px 6px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .f5-chip:active { background: rgba(139, 92, 246, 0.25); border-color: var(--violet); }
+  .f5-chip.stop {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+  }
 </style>
 </head>
 <body>
@@ -1085,15 +1258,21 @@
       </div>
     </div>
     <div class="top-actions">
-      <button class="mini-pill-btn video hidden" id="videoBtn" onclick="toggleVideoChat()">Видео</button>
-      <button class="mini-pill-btn shop hidden" id="shopBtn" onclick="openShop()">Склад</button>
-      <button class="mini-pill-btn hidden" id="endGameBtn" onclick="openHRReport()">HR-Итог</button>
-      <button class="audio-toggle" onclick="enterFullscreenPortrait()" aria-label="На весь экран" title="На весь экран">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      <button class="icon-pill-btn video hidden" id="videoBtn" onclick="toggleVideoChat()" aria-label="Видеочат" title="Видеочат">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
       </button>
-      <button class="audio-toggle" id="soundBtn" onclick="toggleSound()" aria-label="Звук">
-        <svg id="soundIconOn" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-        <svg id="soundIconOff" class="hidden" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      <button class="icon-pill-btn shop hidden" id="shopBtn" onclick="openShop()" aria-label="Склад" title="Склад снаряжения">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      </button>
+      <button class="icon-pill-btn hr hidden" id="endGameBtn" onclick="openHRReport()" aria-label="HR-Итог" title="HR-Итог смены">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </button>
+      <button class="audio-toggle" onclick="enterFullscreenPortrait()" aria-label="На весь экран" title="На весь экран">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      </button>
+      <button class="audio-toggle" id="soundBtn" onclick="toggleSound()" aria-label="Звук" title="Вкл/выкл озвучку">
+        <svg id="soundIconOn" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <svg id="soundIconOff" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
       </button>
     </div>
   </header>
@@ -1117,6 +1296,15 @@
       ⚠️ Файл открыт локально — браузер может блокировать камеру внутри окна. Нажмите <b>«Окно ↗»</b> выше, чтобы зайти с камерой напрямую!
     </div>
   </section>
+
+  <!-- ПРИГЛАШЕНИЕ В ВИДЕОЧАТ ОТ ДРУГОГО ИГРОКА -->
+  <div class="video-invite-bar hidden" id="videoInviteBar">
+    <div class="video-invite-text" id="videoInviteText">📹 Видеочат активен!</div>
+    <div class="video-invite-actions">
+      <button class="video-join-btn" onclick="acceptVideoInvite(false)">Войти</button>
+      <a class="video-join-btn" id="videoInviteExtLink" href="#" target="_blank" rel="noopener" style="background:#06b6d4;color:#083344">Окно ↗</a>
+    </div>
+  </div>
 
   <!-- ЭКРАН 1: НАСТРОЙКА ПАРТИИ -->
   <main class="screen active" id="scr-setup">
@@ -1336,11 +1524,37 @@
     </div>
   </main>
 
+  <!-- ПАНЕЛЬ ГОЛОСОВОГО АССИСТЕНТА F5DS -->
+  <div class="f5-panel hidden" id="f5Panel">
+    <div class="f5-panel-head">
+      <span class="f5-panel-title">🎙️ ГОЛОСОВОЙ АССИСТЕНТ F5DS</span>
+      <button class="v-ctrl-btn danger" onclick="toggleF5Panel(false)">✕</button>
+    </div>
+    <div class="f5-mic-row">
+      <button class="f5-listen-btn" id="f5ListenBtn" onclick="toggleVoiceRecognition()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <span id="f5ListenLabel">НАЖМИ И СКАЖИ КОМАНДУ</span>
+      </button>
+    </div>
+    <div class="f5-transcript" id="f5Transcript">Скажите команду или нажмите на кнопку ниже:</div>
+    <div class="f5-chips">
+      <button class="f5-chip" onclick="handleVoiceCommand('бросить кубик')">🎲 Бросить кубик</button>
+      <button class="f5-chip" onclick="handleVoiceCommand('кто ходит')">📊 Кто ходит?</button>
+      <button class="f5-chip" onclick="handleVoiceCommand('повтори')">🔁 Повтори</button>
+      <button class="f5-chip" onclick="handleVoiceCommand('помощь')">❓ Помощь</button>
+      <button class="f5-chip" onclick="handleVoiceCommand('расскажи факт')">🧠 Расскажи факт</button>
+      <button class="f5-chip stop" onclick="handleVoiceCommand('стоп')">🤫 Стоп</button>
+    </div>
+  </div>
+
   <footer class="dispatcher-bar">
     <div class="eq-bars" id="eqBars">
       <span></span><span></span><span></span>
     </div>
-    <div id="f5Text" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Диспетчер F5DS: готов к работе</div>
+    <div id="f5Text" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Диспетчер F5DS: готов к работе</div>
+    <button class="f5-mic-fab" id="f5MicFab" onclick="toggleF5Panel()" aria-label="Голосовые команды F5DS" title="Голосовые команды F5DS">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
   </footer>
 </div>
 
@@ -1491,7 +1705,34 @@ function playClick(freq = 600, dur = 0.03) {
   } catch (e) {}
 }
 
+const GAS_FACTS_DB = [
+  'Природный газ сам по себе не имеет запаха и цвета. Резкий запах ему придаёт специальная добавка — одорант этилмеркаптан.',
+  'Давление в магистральном газопроводе достигает 75 атмосфер, а в бытовой кухонной плите — всего две сотых атмосферы.',
+  'При охлаждении до минус 162 градусов Цельсия природный газ превращается в жидкость (СПГ) и уменьшается в объёме в 600 раз.',
+  'Длина Единой системы газоснабжения России превышает 175 тысяч километров — это больше четырёх витков вокруг экватора Земли.',
+  'Метан почти в два раза легче воздуха, поэтому при утечке в помещении он поднимается к потолку, а не стелется по полу.',
+  'Чтобы стальные трубы под землёй не ржавели, к ним подключают станции катодной защиты — слабый электрический ток останавливает коррозию.',
+  'Внутри магистральных труб периодически запускают умных роботов — внутритрубные дефектоскопы, которые сканируют металл изнутри.',
+  'Компрессорные станции строят каждые 100–150 километров, чтобы компенсировать потерю давления от трения газа о стенки трубы.',
+  'Югра и Западная Сибирь — один из главных энергетических центров мира, где добывается значительная часть российских углеводородов.',
+  'Температура горения природного газа в бытовой конфорке достигает почти 2000 градусов Цельсия, а голубой цвет пламени говорит о полном сгорании.'
+];
+
+const GAS_TERMS_DB = {
+  'метан': 'Метан — это основной углеводород природного газа с формулой CH4. Он составляет до 98 процентов его объёма.',
+  'одорант': 'Одорант — пахучее вещество, которое добавляют в природный газ на ГРС, чтобы человек мгновенно почувствовал утечку.',
+  'грп': 'ГРП — газорегуляторный пункт. Он снижает высокое давление газа до безопасного и держит его стабильным для потребителей.',
+  'спг': 'СПГ — сжиженный природный газ, охлаждённый до минус 162 градусов для удобной перевозки танкерами и криоцистернами.',
+  'кипиа': 'КИПиА — контрольно-измерительные приборы и автоматика: датчики, контроллеры и системы защиты газопровода.'
+};
+
+let lastSpokenText = 'Терминал Магистраль готов к работе.';
+let lastFactIdx = -1;
+let voiceRecognition = null;
+let isVoiceListening = false;
+
 function speak(text) {
+  lastSpokenText = text;
   document.getElementById('f5Text').innerText = 'F5DS: ' + text;
   if (!state.sound || !('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
@@ -1505,11 +1746,189 @@ function speak(text) {
   speechSynthesis.speak(u);
 }
 
-function toggleSound() {
-  state.sound = !state.sound;
+function setSoundState(enabled) {
+  state.sound = !!enabled;
   document.getElementById('soundIconOn').classList.toggle('hidden', !state.sound);
   document.getElementById('soundIconOff').classList.toggle('hidden', state.sound);
-  if (!state.sound && 'speechSynthesis' in window) speechSynthesis.cancel();
+  if (!state.sound && 'speechSynthesis' in window) {
+    speechSynthesis.cancel();
+    document.getElementById('eqBars').classList.remove('active');
+  }
+}
+
+function toggleF5Panel(forceState) {
+  playClick(640, 0.04);
+  const panel = document.getElementById('f5Panel');
+  const shouldOpen = (typeof forceState === 'boolean') ? forceState : panel.classList.contains('hidden');
+  panel.classList.toggle('hidden', !shouldOpen);
+  if (!shouldOpen && isVoiceListening) {
+    stopVoiceRecognition();
+  }
+}
+
+function stopVoiceRecognition() {
+  isVoiceListening = false;
+  if (voiceRecognition) {
+    try { voiceRecognition.stop(); } catch (e) {}
+  }
+  document.getElementById('f5MicFab').classList.remove('listening');
+  document.getElementById('f5ListenBtn').classList.remove('listening');
+  document.getElementById('f5ListenLabel').innerText = 'НАЖМИ И СКАЖИ КОМАНДУ';
+}
+
+function toggleVoiceRecognition() {
+  if (isVoiceListening) {
+    stopVoiceRecognition();
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById('f5Transcript').innerText = 'Микрофон не поддерживается этим браузером — используйте кнопки ниже.';
+    return;
+  }
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  try {
+    voiceRecognition = new SR();
+    voiceRecognition.lang = 'ru-RU';
+    voiceRecognition.interimResults = false;
+    voiceRecognition.maxAlternatives = 1;
+
+    voiceRecognition.onstart = () => {
+      isVoiceListening = true;
+      document.getElementById('f5MicFab').classList.add('listening');
+      document.getElementById('f5ListenBtn').classList.add('listening');
+      document.getElementById('f5ListenLabel').innerText = 'СЛУШАЮ... ГОВОРИТЕ';
+      document.getElementById('f5Transcript').innerText = 'Слушаю команду...';
+    };
+
+    voiceRecognition.onresult = (event) => {
+      const phrase = event.results[0][0].transcript || '';
+      document.getElementById('f5Transcript').innerText = `Вы сказали: «${phrase}»`;
+      stopVoiceRecognition();
+      handleVoiceCommand(phrase);
+    };
+
+    voiceRecognition.onerror = (e) => {
+      stopVoiceRecognition();
+      document.getElementById('f5Transcript').innerText = (e.error === 'not-allowed')
+        ? 'Нет доступа к микрофону (нужен HTTPS или разрешение браузера). Используйте кнопки ниже.'
+        : 'Не расслышал команду. Попробуйте снова или нажмите кнопку ниже.';
+    };
+
+    voiceRecognition.onend = () => {
+      stopVoiceRecognition();
+    };
+
+    voiceRecognition.start();
+  } catch (err) {
+    stopVoiceRecognition();
+    document.getElementById('f5Transcript').innerText = 'Ошибка запуска микрофона. Используйте кнопки команд ниже.';
+  }
+}
+
+function handleVoiceCommand(rawText) {
+  const cmd = (rawText || '').toLowerCase().trim();
+  const tr = document.getElementById('f5Transcript');
+
+  // 1. СТОП — выключает озвучку
+  if (cmd.includes('стоп') || cmd.includes('тихо') || cmd.includes('замолчи') || cmd.includes('выключи звук') || cmd.includes('выключить озвучку')) {
+    setSoundState(false);
+    document.getElementById('f5Text').innerText = 'F5DS: Озвучка выключена';
+    tr.innerText = 'Озвучка выключена. Нажмите значок динамика или скажите «Включи звук».';
+    return;
+  }
+
+  // Включение звука обратно
+  if (cmd.includes('включи звук') || cmd.includes('включить озвучку')) {
+    setSoundState(true);
+    speak('Озвучка снова включена.');
+    tr.innerText = 'Озвучка включена.';
+    return;
+  }
+
+  // 2. БРОСИТЬ КУБИК
+  if (cmd.includes('брос') || cmd.includes('кидай') || cmd.includes('кубик')) {
+    const turnActive = document.getElementById('scr-turn').classList.contains('active');
+    const isRemote = state.mp.active && (state.currentIdx !== state.mp.myPlayerIdx);
+    if (!turnActive) {
+      speak('Сначала начните смену, чтобы бросить кубик.');
+    } else if (isRemote) {
+      speak(`Сейчас ходит ${state.players[state.currentIdx].name}. Дождитесь своей очереди.`);
+    } else if (state.hasRolledThisTurn) {
+      speak('Кубик уже брошен. Выполните задание текущей клетки.');
+    } else {
+      toggleF5Panel(false);
+      rollMainDice();
+    }
+    return;
+  }
+
+  // 3. КТО ХОДИТ / СТАТУС
+  if (cmd.includes('кто ходит') || cmd.includes('чей ход') || cmd.includes('статус') || cmd.includes('где я')) {
+    if (!state.players || state.players.length === 0) {
+      speak('Смена ещё не началась. Выберите режим и нажмите начать.');
+    } else {
+      const cur = state.players[state.currentIdx];
+      const cell = BOARD_MAP[cur.posIndex];
+      speak(`Сейчас ходит ${cur.name}. Сектор ${cell.num}, ${cell.title}. Баланс: ${cur.score} баррелей.`);
+    }
+    return;
+  }
+
+  // 4. ПОВТОРИ
+  if (cmd.includes('повтори') || cmd.includes('ещё раз') || cmd.includes('еще раз')) {
+    if (!state.sound) setSoundState(true);
+    speak(lastSpokenText);
+    return;
+  }
+
+  // 5. ПОМОЩЬ
+  if (cmd.includes('помощь') || cmd.includes('подскаж') || cmd.includes('что делать')) {
+    if (document.getElementById('scr-setup').classList.contains('active')) {
+      speak('Выберите число игроков, режим смены — Офлайн, Бригада или Онлайн — и нажмите кнопку старта внизу.');
+    } else if (document.getElementById('scr-lobby').classList.contains('active')) {
+      speak('Создайте комнату, чтобы получить код, или введите код друга. Можно включить видеочат кнопкой выше.');
+    } else if (document.getElementById('scr-turn').classList.contains('active')) {
+      if (state.mp.active && state.currentIdx !== state.mp.myPlayerIdx) {
+        speak('Дождитесь, пока удалённый игрок закончит ход, и передвиньте его фишку на своём поле.');
+      } else if (!state.hasRolledThisTurn) {
+        speak('Нажмите «Бросить кубик» или скажите «Бросить кубик», затем передвиньте свою фишку на указанный сектор.');
+      } else {
+        speak('Передвиньте фишку на новый сектор и нажмите «Выполнить задание клетки».');
+      }
+    } else if (document.getElementById('scr-task').classList.contains('active')) {
+      speak('Выберите верный вариант ответа или настройте давление в зелёной зоне пульта, затем передайте ход далее.');
+    } else {
+      speak('Доступные команды: Бросить кубик, Кто ходит, Повтори, Помощь, Расскажи факт и Стоп.');
+    }
+    return;
+  }
+
+  // 6. РАССКАЖИ ФАКТ
+  if (cmd.includes('факт')) {
+    let idx = Math.floor(Math.random() * GAS_FACTS_DB.length);
+    if (idx === lastFactIdx) idx = (idx + 1) % GAS_FACTS_DB.length;
+    lastFactIdx = idx;
+    const fact = GAS_FACTS_DB[idx];
+    tr.innerText = fact;
+    speak('Интересный факт: ' + fact);
+    return;
+  }
+
+  // 7. ЧТО ТАКОЕ <ТЕРМИН>
+  for (const [term, desc] of Object.entries(GAS_TERMS_DB)) {
+    if (cmd.includes(term)) {
+      tr.innerText = desc;
+      speak(desc);
+      return;
+    }
+  }
+
+  speak('Команда не распознана. Скажите: Бросить кубик, Кто ходит, Повтори, Помощь, Расскажи факт или Стоп.');
+}
+
+function toggleSound() {
+  setSoundState(!state.sound);
 }
 
 function showScreen(id) {
@@ -1582,9 +2001,9 @@ function openOnlineLobby() {
 }
 
 const VIDEO_SERVERS = [
-  { name: 'VDO (Реком.)', type: 'vdo', domain: 'vdo.ninja' },
+  { name: 'VDO.Ninja', type: 'vdo', domain: 'vdo.ninja' },
   { name: 'Jitsi 1', type: 'jitsi', domain: 'meet.ffmuc.net' },
-  { name: 'Jitsi 2', type: 'jitsi', domain: 'meet.jit.si' }
+  { name: 'Jitsi 2', type: 'jitsi', domain: 'jitsi.riot.im' }
 ];
 
 const MQTT_BROKERS = [
@@ -1599,12 +2018,12 @@ function getVideoRoomUrl() {
   const displayName = encodeURIComponent(state.mp.myDisplayName || 'Игрок');
 
   if (srv.type === 'vdo') {
-    // VDO.Ninja не требует логина организатора и стабильно работает в iframe на смартфонах
-    return `https://vdo.ninja/?room=${roomName}&label=${displayName}&autostart&wc&noheader&cleanoutput`;
+    // Без &cleanoutput и без &autostart: на Android/iOS показывается кнопка «Join Room with Camera», чтобы телефон запросил доступ к камере
+    return `https://vdo.ninja/?room=${roomName}&label=${displayName}&showlabels&noheader`;
   }
 
   const hashParams = [
-    'config.prejoinPageEnabled=false',
+    'config.prejoinPageEnabled=true',
     'config.disableDeepLinking=true',
     'config.startWithAudioMuted=false',
     'config.startWithVideoMuted=false',
@@ -1619,6 +2038,7 @@ function getVideoRoomUrl() {
 function openVideoChat(silentSync = false) {
   if (!state.mp.roomCode) return;
   playClick(720, 0.05);
+  document.getElementById('videoInviteBar').classList.add('hidden');
   const drawer = document.getElementById('videoDrawer');
   const wrap = document.getElementById('videoFrameWrap');
   const btn = document.getElementById('videoBtn');
@@ -1631,20 +2051,29 @@ function openVideoChat(silentSync = false) {
   document.getElementById('videoHttpsWarn').classList.toggle('hidden', window.location.protocol === 'https:');
 
   if (!state.mp.videoOpen) {
-    wrap.innerHTML = `<iframe src="${url}" allow="camera; microphone; fullscreen; display-capture; autoplay" allowfullscreen></iframe>`;
+    wrap.innerHTML = `<iframe src="${url}" allow="camera *; microphone *; fullscreen *; display-capture *; autoplay *" referrerpolicy="no-referrer" allowfullscreen></iframe>`;
     state.mp.videoOpen = true;
   }
 
   state.mp.videoMinimized = false;
   drawer.classList.remove('closed', 'minimized');
   document.getElementById('videoMinBtn').innerText = 'Свернуть';
-  btn.classList.remove('hidden');
+  btn.classList.remove('hidden', 'ringing');
   btn.classList.add('active-call');
 
-  // Синхронизируем выбранный видеосервер с остальными участниками комнаты
+  // Отправляем приглашение и синхронизируем сервер со всеми участниками комнаты
   if (!silentSync && state.mp.active) {
-    sendMqttMessage({ type: 'VIDEO_SRV_SYNC', serverIdx: state.mp.jitsiServerIdx });
+    sendMqttMessage({
+      type: 'VIDEO_SRV_SYNC',
+      serverIdx: state.mp.jitsiServerIdx,
+      initiator: state.mp.myDisplayName || 'Игрок'
+    });
   }
+}
+
+function acceptVideoInvite() {
+  document.getElementById('videoInviteBar').classList.add('hidden');
+  openVideoChat(true);
 }
 
 function toggleVideoChat() {
@@ -1690,6 +2119,7 @@ function leaveOnlineLobby() {
   stopJoinRetry();
   closeVideoChat();
   document.getElementById('videoBtn').classList.add('hidden');
+  document.getElementById('videoInviteBar').classList.add('hidden');
   if (state.mp.client) {
     try { state.mp.client.end(true); } catch (e) {}
   }
@@ -1760,6 +2190,15 @@ function connectMqttBroker(onConnected, onError, brokerIdx = 0) {
         if (state.mp.videoOpen) {
           state.mp.videoOpen = false;
           openVideoChat(true);
+        } else {
+          const bar = document.getElementById('videoInviteBar');
+          document.getElementById('videoInviteText').innerText = `📹 ${msg.initiator || 'Игрок'} включил видеочат`;
+          document.getElementById('videoInviteExtLink').href = getVideoRoomUrl();
+          bar.classList.remove('hidden');
+          const vBtn = document.getElementById('videoBtn');
+          vBtn.classList.remove('hidden');
+          vBtn.classList.add('ringing');
+          playClick(880, 0.08);
         }
         return;
       }
